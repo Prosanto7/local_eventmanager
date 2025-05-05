@@ -60,19 +60,21 @@ Create with Moodle's XMLDB editor or use this:
 ```xml
 <?xml version="1.0" encoding="UTF-8" ?>
 <XMLDB PATH="local/eventmanager/db" VERSION="2025043000" COMMENT="Event manager table">
-  <TABLE NAME="local_eventmanager" COMMENT="Stores event data">
-    <FIELDS>
-      <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-      <FIELD NAME="title" TYPE="char" LENGTH="255" NOTNULL="true"/>
-      <FIELD NAME="description" TYPE="text" NOTNULL="false"/>
-      <FIELD NAME="category" TYPE="char" LENGTH="100" NOTNULL="true"/>
-      <FIELD NAME="eventdate" TYPE="int" LENGTH="10" NOTNULL="true"/>
-      <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true"/>
-    </FIELDS>
-    <KEYS>
-      <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-    </KEYS>
-  </TABLE>
+  <TABLES>
+    <TABLE NAME="local_eventmanager" COMMENT="Stores event data">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="title" TYPE="char" LENGTH="255" NOTNULL="true"/>
+        <FIELD NAME="description" TYPE="text" NOTNULL="false"/>
+        <FIELD NAME="category" TYPE="char" LENGTH="100" NOTNULL="true"/>
+        <FIELD NAME="eventdate" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+    </TABLE>
+  </TABLES>
 </XMLDB>
 ```
 
