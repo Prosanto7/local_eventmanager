@@ -40,5 +40,6 @@ foreach ($events as $event) {
 
 
 echo $OUTPUT->header();
+$PAGE->requires->js_call_amd('local_eventmanager/deleteconfirm', 'init');
 echo $OUTPUT->render_from_template('local_eventmanager/eventlist', $templatecontext);
 echo $OUTPUT->footer();
