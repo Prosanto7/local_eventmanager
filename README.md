@@ -38,7 +38,6 @@ Inside it, create these files:
 │       └── local_eventmanager.php
 ```
 
----
 
 ## 📜 **2. version.php**
 ```php
@@ -46,13 +45,11 @@ Inside it, create these files:
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_eventmanager';
-$plugin->version = 2025043000;
-$plugin->requires = 2020110900; // Moodle 3.10+
+$plugin->version = 2025043006;
+$plugin->requires = 2022041900;
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.0';
+$plugin->release = '1.0.0';
 ```
-
----
 
 ## 🛠️ **3. db/install.xml** (Defines the event table)
 
@@ -66,6 +63,7 @@ Create with Moodle's XMLDB editor or use this:
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="title" TYPE="char" LENGTH="255" NOTNULL="true"/>
         <FIELD NAME="description" TYPE="text" NOTNULL="false"/>
+        <FIELD NAME="format" TYPE="int" LENGTH="2" NOTNULL="false"/>
         <FIELD NAME="category" TYPE="char" LENGTH="100" NOTNULL="true"/>
         <FIELD NAME="eventdate" TYPE="int" LENGTH="10" NOTNULL="true"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true"/>
@@ -77,8 +75,6 @@ Create with Moodle's XMLDB editor or use this:
   </TABLES>
 </XMLDB>
 ```
-
----
 
 ## 🔐 **4. db/access.php** (Role-based capabilities)
 
@@ -92,23 +88,10 @@ $capabilities = [
         'contextlevel' => CONTEXT_SYSTEM,
         'archetypes' => [
             'manager' => CAP_ALLOW,
-            'admin' => CAP_ALLOW
-        ]
-    ],
-    'local/eventmanager:viewevents' => [
-        'captype' => 'read',
-        'contextlevel' => CONTEXT_SYSTEM,
-        'archetypes' => [
-            'student' => CAP_ALLOW,
-            'teacher' => CAP_ALLOW,
-            'manager' => CAP_ALLOW,
-            'admin' => CAP_ALLOW
         ]
     ]
 ];
 ```
-
----
 
 ## 🌐 **5. lang/en/local_eventmanager.php**
 
@@ -125,11 +108,36 @@ $string['eventcategory'] = 'Category';
 $string['viewdetails'] = 'View Details';
 $string['manageevents'] = 'Manage Events';
 $string['viewevents'] = 'View Events';
+$string['cancel_form'] = 'You cancelled the form action';
+$string['updatethanks'] = 'Event updated successfully';
+$string['institutionevents'] = 'Institution Events';
+$string['eventmanager:viewevents'] = 'View Events';
+$string['eventmanager:manageevents'] = 'Manage Events';
 ```
 
----
+## 🧾 **6. templates/eventlist.mustache**
 
-## 🧑‍💻 **6. index.php** (Entry point)
+```php
+<?php
+require('../../config.php');
+require_login();
+
+$id = required_param('id', PARAM_INT);
+$event = $DB->get_record('local_eventmanager', ['id' => $id], '*', MUST_EXIST);
+
+$PAGE->set_context(context_system::instance());
+$PAGE->set_url(new moodle_url('/local/eventmanager/view.php', ['id' => $id]));
+$PAGE->set_title($event->title);
+$PAGE->set_heading($event->title);
+
+echo $OUTPUT->header();
+echo format_text($event->description);
+echo html_writer::tag('p', "Category: " . $event->category);
+echo html_writer::tag('p', "Date: " . userdate($event->eventdate));
+echo $OUTPUT->footer();
+```
+
+## 🧑‍💻 **7. index.php** (Entry point)
 
 ```php
 <?php
@@ -137,8 +145,6 @@ require('../../config.php');
 require_login();
 
 $context = context_system::instance();
-require_capability('local/eventmanager:viewevents', $context);
-
 $canmanage = has_capability('local/eventmanager:manageevents', $context);
 
 $PAGE->set_context($context);
@@ -146,63 +152,67 @@ $PAGE->set_url(new moodle_url('/local/eventmanager/index.php'));
 $PAGE->set_title('Event Manager');
 $PAGE->set_heading('Event Manager');
 
-echo $OUTPUT->header();
-echo $OUTPUT->heading('Institution Events');
-
-if ($canmanage) {
-    echo html_writer::link(new moodle_url('edit.php'), get_string('newevent', 'local_eventmanager'), ['class' => 'btn btn-primary']);
-}
-
 $events = $DB->get_records('local_eventmanager', null, 'eventdate ASC');
 
-if ($events) {
-    echo '<ul>';
-    foreach ($events as $event) {
-        echo '<li>';
-        echo html_writer::link(new moodle_url('view.php', ['id' => $event->id]), format_string($event->title));
-        if ($canmanage) {
-            echo " - " . html_writer::link(new moodle_url('edit.php', ['id' => $event->id]), 'Edit') . " | ";
-            echo html_writer::link(new moodle_url('delete.php', ['id' => $event->id]), 'Delete');
-        }
-        echo '</li>';
+// Prepare data for Mustache
+$templatecontext = [
+    'heading' => get_string('institutionevents', 'local_eventmanager'),
+    'canmanage' => $canmanage,
+    'newevent' => get_string('newevent', 'local_eventmanager'),
+    'newurl' => new moodle_url('/local/eventmanager/edit.php'),
+    'events' => !empty($events),
+    'list' => []
+];
+
+foreach ($events as $event) {
+    $item = [
+        'title' => format_string($event->title),
+        'eventdate' => userdate($event->eventdate),
+        'viewurl' => new moodle_url('/local/eventmanager/view.php', ['id' => $event->id])
+    ];
+
+    if ($canmanage) {
+        $item['canmanage'] = true;
+        $item['editurl'] = new moodle_url('/local/eventmanager/edit.php', ['id' => $event->id]);
+        $item['deleteurl'] = new moodle_url('/local/eventmanager/delete.php', ['id' => $event->id]);
     }
-    echo '</ul>';
-} else {
-    echo 'No events found.';
+
+    $templatecontext['list'][] = $item;
 }
 
+
+echo $OUTPUT->header();
+echo $OUTPUT->render_from_template('local_eventmanager/eventlist', $templatecontext);
 echo $OUTPUT->footer();
+
 ```
 
----
-
-## 📝 **7. edit.php** (Create or update)
+## 📝 **8. edit.php** (Create or update)
 
 ```php
 <?php
 require('../../config.php');
+use local_eventmanager\form\event_form;
+
 require_login();
+
 $context = context_system::instance();
 require_capability('local/eventmanager:manageevents', $context);
+
+$PAGE->set_context($context);
 
 $id = optional_param('id', 0, PARAM_INT);
 $event = $id ? $DB->get_record('local_eventmanager', ['id' => $id], '*', MUST_EXIST) : null;
 
-$mform = new MoodleQuickForm('editform', 'post');
-$mform->addElement('text', 'title', get_string('eventtitle', 'local_eventmanager'));
-$mform->addElement('textarea', 'description', get_string('eventdesc', 'local_eventmanager'));
-$mform->addElement('text', 'category', get_string('eventcategory', 'local_eventmanager'));
-$mform->addElement('date_selector', 'eventdate', get_string('eventdate', 'local_eventmanager'));
-$mform->addElement('hidden', 'id');
-$mform->setType('id', PARAM_INT);
-$mform->addElement('submit', 'submitbutton', $id ? get_string('editevent', 'local_eventmanager') : get_string('newevent', 'local_eventmanager'));
+$mform = new event_form();
 
 if ($mform->is_cancelled()) {
-    redirect('index.php');
+    redirect(new moodle_url('/local/eventmanager/index.php'), get_string('cancel_form', 'local_eventmanager'));
 } else if ($data = $mform->get_data()) {
     $record = (object)[
         'title' => $data->title,
-        'description' => $data->description,
+        'description' => $data->description['text'],
+        'format' => $data->description['format'],
         'category' => $data->category,
         'eventdate' => $data->eventdate,
         'timecreated' => time()
@@ -213,14 +223,17 @@ if ($mform->is_cancelled()) {
     } else {
         $DB->insert_record('local_eventmanager', $record);
     }
-    redirect('index.php');
+    redirect(new moodle_url('/local/eventmanager/index.php'), get_string('updatethanks', 'local_eventmanager'));
 }
 
 if ($event) {
+    $event->description = [
+        'text' => $event->description,
+        'format' => $event->format
+    ];
     $mform->set_data($event);
 }
 
-$PAGE->set_context($context);
 $PAGE->set_url(new moodle_url('/local/eventmanager/edit.php', ['id' => $id]));
 $PAGE->set_title('Edit Event');
 $PAGE->set_heading('Edit Event');
@@ -230,9 +243,7 @@ $mform->display();
 echo $OUTPUT->footer();
 ```
 
----
-
-## 🗑️ **8. delete.php**
+## 🗑️ **9. delete.php**
 
 ```php
 <?php
@@ -247,15 +258,12 @@ $DB->delete_records('local_eventmanager', ['id' => $id]);
 redirect('index.php');
 ```
 
----
-
-## 🔍 **9. view.php**
+## 🔍 **10. view.php**
 
 ```php
 <?php
 require('../../config.php');
 require_login();
-require_capability('local/eventmanager:viewevents', context_system::instance());
 
 $id = required_param('id', PARAM_INT);
 $event = $DB->get_record('local_eventmanager', ['id' => $id], '*', MUST_EXIST);
@@ -266,21 +274,8 @@ $PAGE->set_title($event->title);
 $PAGE->set_heading($event->title);
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading(format_string($event->title));
 echo format_text($event->description);
 echo html_writer::tag('p', "Category: " . $event->category);
 echo html_writer::tag('p', "Date: " . userdate($event->eventdate));
 echo $OUTPUT->footer();
 ```
-
----
-
-## ✅ **10. Final Steps**
-1. Place the plugin in `moodle/local/eventmanager`
-2. Visit **Site Administration > Notifications** to install it
-3. Set capabilities:
-   - Go to **Site admin > Users > Permissions > Define roles**
-   - Ensure `local/eventmanager:manageevents` is enabled for Managers/Admins
-   - `local/eventmanager:viewevents` is enabled for Students
-
----
