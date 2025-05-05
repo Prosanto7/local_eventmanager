@@ -23,19 +23,24 @@ moodle/local/eventmanager/
 Inside it, create these files:
 
 ```
-.
+├── classes
+│   └── form
+│       └── event_form.php
 ├── db
 │   ├── access.php
-│   └── install.xml
+│   ├── install.xml
+├── lang
+│   └── en
+│       └── local_eventmanager.php
+├── templates
+│   ├── eventlist.mustache.php
 ├── index.php
 ├── manage.php
 ├── edit.php
 ├── delete.php
 ├── view.php
 ├── version.php
-├── lang
-│   └── en
-│       └── local_eventmanager.php
+
 ```
 
 
@@ -118,23 +123,44 @@ $string['eventmanager:manageevents'] = 'Manage Events';
 ## 🧾 **6. templates/eventlist.mustache**
 
 ```php
-<?php
-require('../../config.php');
-require_login();
+<h2>{{heading}}</h2>
 
-$id = required_param('id', PARAM_INT);
-$event = $DB->get_record('local_eventmanager', ['id' => $id], '*', MUST_EXIST);
+{{#canmanage}}
+    <a href="{{newurl}}" class="btn btn-primary mb-3">{{newevent}}</a>
+{{/canmanage}}
 
-$PAGE->set_context(context_system::instance());
-$PAGE->set_url(new moodle_url('/local/eventmanager/view.php', ['id' => $id]));
-$PAGE->set_title($event->title);
-$PAGE->set_heading($event->title);
+{{#events}}
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered">
+            <thead class="">
+                <tr>
+                    <th>Event Title</th>
+                    <th>Event Date</th>
+                    {{#canmanage}}<th>Actions</th>{{/canmanage}}
+                </tr>
+            </thead>
+            <tbody>
+                {{#list}}
+                    <tr>
+                        <td><a href="{{viewurl}}">{{title}}</a></td>
+                        <td>{{eventdate}}</td>
+                        {{#canmanage}}
+                            <td>
+                                <a href="{{editurl}}" class="btn btn-sm btn-secondary">Edit</a>
+                                <a href="{{deleteurl}}" class="btn btn-sm btn-danger">Delete</a>
+                            </td>
+                        {{/canmanage}}
+                    </tr>
+                {{/list}}
+            </tbody>
+        </table>
+    </div>
+{{/events}}
 
-echo $OUTPUT->header();
-echo format_text($event->description);
-echo html_writer::tag('p', "Category: " . $event->category);
-echo html_writer::tag('p', "Date: " . userdate($event->eventdate));
-echo $OUTPUT->footer();
+{{^events}}
+    <div class="alert alert-info">No events found.</div>
+{{/events}}
+
 ```
 
 ## 🧑‍💻 **7. index.php** (Entry point)
