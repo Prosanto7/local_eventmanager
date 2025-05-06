@@ -23,6 +23,13 @@ moodle/local/eventmanager/
 Inside it, create these files:
 
 ```
+
+├── amd
+│   └── build
+        └── deleteconfirm.min.js
+        └── deleteconfirm.min.js.map
+│   └── src
+│       └── deleteconfirm.js
 ├── classes
 │   └── form
 │       └── event_form.php
@@ -163,7 +170,23 @@ $string['eventmanager:manageevents'] = 'Manage Events';
 
 ```
 
-## 🧑‍💻 **7. index.php** (Entry point)
+## 🧾 **7. amd/src/deleteconfirm.js**
+
+```javascript
+
+export const init = () => {
+    document.querySelectorAll('.delete-event').forEach(el => {
+        el.addEventListener('click', e => {
+            if (!confirm('Are you sure you want to delete this event?')) {
+                e.preventDefault();
+            }
+        });
+    });
+};
+
+```
+
+## 🧑‍💻 **8. index.php** (Entry point)
 
 ```php
 <?php
@@ -213,7 +236,7 @@ echo $OUTPUT->footer();
 
 ```
 
-## 📝 **8. edit.php** (Create or update)
+## 📝 **9. edit.php** (Create or update)
 
 ```php
 <?php
@@ -269,7 +292,7 @@ $mform->display();
 echo $OUTPUT->footer();
 ```
 
-## 🗑️ **9. delete.php**
+## 🗑️ **10. delete.php**
 
 ```php
 <?php
@@ -284,7 +307,7 @@ $DB->delete_records('local_eventmanager', ['id' => $id]);
 redirect('index.php');
 ```
 
-## 🔍 **10. view.php**
+## 🔍 **11. view.php**
 
 ```php
 <?php
