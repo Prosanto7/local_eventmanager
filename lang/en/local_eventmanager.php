@@ -15,3 +15,4 @@ $string['updatethanks'] = 'Event updated successfully';
 $string['institutionevents'] = 'Institution Events';
 $string['eventmanager:viewevents'] = 'View Events';
 $string['eventmanager:manageevents'] = 'Manage Events';
+$string['footerwelcome'] = 'Hi {$a}, welcome to the institution portal!';
